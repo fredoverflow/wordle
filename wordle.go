@@ -183,15 +183,15 @@ func main() {
 			// 0000000000 1111111111 2222222222 3333333333 4444444444 5555555555 6666666666 7777777777
 			for i := begin; i < end; i++ {
 				iY := i * Y
-				skip[iY+lenProxies] = uint16(lenProxies) // 5176
+				next := uint16(lenProxies) // 5176
+				skip[iY+lenProxies] = next
 				A := proxies[i]
 				for j := lenProxies - 1; j >= i; j-- {
 					B := proxies[j]
 					if (A & B) == 0 {
-						skip[iY+j] = uint16(j)
-					} else {
-						skip[iY+j] = skip[iY+j+1]
+						next = uint16(j)
 					}
+					skip[iY+j] = next
 				}
 				first[i] = skip[iY+i]
 			}
