@@ -31,6 +31,8 @@ import (
 //       EARIOTNSLCUDPMHGBFYWKVXZJQ
 // rusty --R--T-S--U-------Y-------
 
+const AEIOUY = uint(1 << 24| 1 << 25 | 1 << 22 | 1 << 21 | 1 << 15 | 1 << 7) // A, E, I, O, U, Y
+
 var EARIOTNSLCUDPMHGBFYWKVXZJQ = [27]uint32{
 	0,
 	1 << 24, // A
@@ -88,8 +90,11 @@ func appendWords(filename string) {
 		raw := scanner.Text()
 		if len(raw) == 5 {
 			letters := encodeWord(raw)
-			if bits.OnesCount(uint(letters)) == 5 {
-				words = append(words, Word{raw, letters})
+			lettersAsUInt := uint(letters)
+			if bits.OnesCount(lettersAsUInt) == 5 {
+			    if bits.OnesCount(lettersAsUInt & AEIOUY ) < 3 {
+			        words = append(words, Word{raw, letters})
+			    }
 			}
 		}
 	}
@@ -107,7 +112,7 @@ func main() {
 	// Uncomment the following 2 lines to find 10 solutions:
 	appendWords("wordle-nyt-answers-alphabetical.txt")
 	appendWords("wordle-nyt-allowed-guesses.txt")
-	lenWords := len(words) // 8310
+	lenWords := len(words) // 7244
 
 	// xstrngr: "Your outer loop can be restricted to words with q or x   [q or j]
 	//           when these run out, you can't have a solution with the remaining 24 letters"
