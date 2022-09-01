@@ -100,7 +100,7 @@ func appendWords(filename string) {
 }
 
 func main() {
-	t0 := time.Now().UnixMilli()
+	t0 := time.Now()
 
 	// Uncomment the following 1 line to find 538 solutions:
 	// appendWords("words_alpha.txt")
@@ -157,7 +157,7 @@ func main() {
 		}
 	}
 
-	t1 := time.Now().UnixMilli()
+	t1 := time.Now()
 
 	// skip[a][b]
 
@@ -200,7 +200,7 @@ func main() {
 	}
 	wg.Wait()
 
-	t2 := time.Now().UnixMilli()
+	t2 := time.Now()
 
 	wg.Add(numCPU)
 	var resultCounter uint32
@@ -255,13 +255,13 @@ func main() {
 	}
 	wg.Wait()
 
-	t3 := time.Now().UnixMilli()
+	t3 := time.Now()
 
 	fmt.Println()
-	fmt.Printf("%4dms prepare words\n", t1-t0)
-	fmt.Printf("%4dms compute tables\n", t2-t1)
-	fmt.Printf("%4dms find solutions\n", t3-t2)
-	fmt.Printf("%4dms total\n", t3-t0)
+	fmt.Printf("%v prepare words\n", t1.Sub(t0))
+	fmt.Printf("%v compute tables\n", t2.Sub(t1))
+	fmt.Printf("%v find solutions\n", t3.Sub(t2))
+	fmt.Printf("%v total\n", t3.Sub(t0))
 }
 
 func writeSolution(sb *strings.Builder, i, j, k, l, m uint32) {
