@@ -2,4 +2,4 @@
 
 set -xe
 
-/usr/bin/c++ -g -ltbb wordle.cpp -o wordle
+/usr/bin/c++ -o3 -g -ltbb wordle.cpp -o wordle
