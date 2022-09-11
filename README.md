@@ -29,3 +29,17 @@ cd Downloads
 javac Wordle3.java
 java Wordle
 ```
+
+## C++
+Linux:
+```
+bash build.sh    
+./Wordle
+```
+or
+
+```
+/usr/bin/c++ -o3 -g -ltbb wordle.cpp -o wordle   
+./Wordle
+```
+Windows: ???
