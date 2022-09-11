@@ -9,8 +9,15 @@
 #include <thread>
 #include <numeric>
 #include <execution>
+#pragma GCC optimize("O3,unroll-loops")
+#pragma GCC target("avx2,popcnt,lzcnt,abm,bmi,bmi2,fma")
 
 using namespace std;
+using namespace tbb;
+using chrono::duration_cast;
+using chrono::milliseconds;
+using chrono::seconds;
+using chrono::system_clock;
 const int EARIOTNSLCUDPMHGBFYWKVXZJQ[] = {
         0,
         1 << 24, // A
@@ -54,8 +61,13 @@ struct Word {
     int letters;    // --R--T-S--U-------Y-------
 };
 
-void appendWords(string filename, vector<Word> &words){
+vector<Word> appendWords(string filename, vector<Word> words){
     ifstream myfile (filename);
+    if (!myfile.is_open())
+    {
+        cout << "Unable to open file";
+        return words;
+    }
     string raw;
     while (getline(myfile, raw)){
         if (raw.length() == 5){
@@ -65,9 +77,10 @@ void appendWords(string filename, vector<Word> &words){
             }
         }
     }
+    return words;
 }
 
-void go_func1(int x, vector<uint32_t> proxies, vector<uint32_t> skip,vector<uint32_t> first, int numCPU){
+void go_func1(int x, vector<uint32_t> &proxies, vector<uint32_t> &skip, vector<uint32_t> &first, int numCPU){
     int lenProxies = (int)proxies.size();
     int begin = x * lenProxies / numCPU;     //    0  647 1294 1941 2588 3235 3882 4529
     int end = (x+1) * lenProxies / numCPU;   //  647 1294 1941 2588 3235 3882 4529 5176
@@ -88,42 +101,39 @@ void go_func1(int x, vector<uint32_t> proxies, vector<uint32_t> skip,vector<uint
         first[i] = skip[iY+i];
     }
 }
-void writeAnagrams(uint32_t index, vector<Word> words) {
-    cout << words[index].raw; //     cylix
+string writeAnagrams(uint32_t index, vector<Word> words) {
+    string s = words[index].raw; //     cylix
 
     uint32_t letters = words[index].letters; //      -----I----LC--------Y---X---
 
     for (index++; words[index].letters == letters; index++) {
-        cout << '/' << words[index].raw; // xylic
+        s += '/' + words[index].raw; // xylic
     }
+    return s;
 }
-void writeSolution(uint32_t i,uint32_t j,uint32_t k,uint32_t l,uint32_t m, vector<Word> & words) {
-    writeAnagrams(i, words);
-    cout << ' ';
-    writeAnagrams(j, words);
-    cout << ' ';
-    writeAnagrams(k, words);
-    cout << ' ';
-    writeAnagrams(l, words);
-    cout << ' ';
-    writeAnagrams(m, words);
+string writeSolution(uint32_t i,uint32_t j,uint32_t k,uint32_t l,uint32_t m, vector<Word> & words) {
+    return
+        writeAnagrams(i, words) + " " +
+        writeAnagrams(j, words) + " " +
+        writeAnagrams(k, words) + " " +
+        writeAnagrams(l, words) + " " +
+        writeAnagrams(m, words) + "\n";
 }
 
 atomic_int resultCounter{0};
-void go_func2(int x, int jqSplit, vector<uint32_t> proxies, vector<uint32_t> skip, vector<uint32_t> first,vector<uint32_t> indices, vector<Word> words, int numCPU){
+void go_func2(int x, int jqSplit, vector<uint32_t> &proxies, vector<uint32_t>  &skip, vector<uint32_t> &first,vector<uint32_t> &indices, vector<Word> &words, int numCPU){
     int lenProxies = (int)proxies.size();
     int begin = x;     //    0  647 1294 1941 2588 3235 3882 4529
     int Y = lenProxies + 1;
     // 01234567 01234567 01234567 01234567 01234567 01234567 01234567 01234567 01234567 01234567
+
     for (int i = begin; i < jqSplit; i += numCPU) {
         uint32_t A = proxies[i];
-        int iY = i * Y;
-
+        uint32_t iY = i * Y;
         for (uint32_t j = first[i]; j < lenProxies; j = skip[iY+j+1]) {
             uint32_t B = proxies[j];
             uint32_t AB = A | B;
             uint32_t jY = j * Y;
-
             for (uint32_t k = first[j]; k < lenProxies; k = skip[jY+skip[iY+k+1]]) {
                 uint32_t C = proxies[k];
                 if (AB & C) {
@@ -131,7 +141,6 @@ void go_func2(int x, int jqSplit, vector<uint32_t> proxies, vector<uint32_t> ski
                 }
                 uint32_t ABC = AB | C;
                 uint32_t kY = k * Y;
-
                 for (uint32_t l = first[k]; l < lenProxies; l = skip[kY+skip[jY+skip[iY+l+1]]]) {
                     uint32_t D = proxies[l];
                     if (ABC & D) {
@@ -139,20 +148,19 @@ void go_func2(int x, int jqSplit, vector<uint32_t> proxies, vector<uint32_t> ski
                     }
                     uint32_t ABCD = ABC | D;
                     uint32_t lY = l * Y;
-
                     for (uint32_t m = first[l]; m < lenProxies; m = skip[lY+skip[kY+skip[jY+skip[iY+m+1]]]]) {
                         uint32_t E = proxies[m];
                         if (ABCD & E) {
                             continue;
                         }
-
+                        string s;
                         if (++resultCounter < 100) {
-                            cout << ' ';
+                            s += ' ';
                             if (resultCounter < 10)
-                                cout << ' ';
+                                s += ' ';
                         }
-                        cout << resultCounter;
-                        writeSolution(indices[i], indices[j], indices[k], indices[l], indices[m], words);
+                        s += to_string(resultCounter) + ". " + writeSolution(indices[i], indices[j], indices[k], indices[l], indices[m], words);
+                        cout << s;
 
                     }
                 }
@@ -161,18 +169,15 @@ void go_func2(int x, int jqSplit, vector<uint32_t> proxies, vector<uint32_t> ski
     }
 }
 
-using std::chrono::duration_cast;
-using std::chrono::milliseconds;
-using std::chrono::seconds;
-using std::chrono::system_clock;
+
 
 int main(){
     auto t0 = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-    vector<Word> words;
-    appendWords("/wordle-nyt-answers-alphabetical.txt", words);
-    appendWords("/wordle-nyt-allowed-guesses.txt", words);
+    vector<Word> words{};
+    words = appendWords("wordle-nyt-answers-alphabetical.txt", words);
+    words = appendWords("wordle-nyt-allowed-guesses.txt", words);
     ulong lenWords = words.size();
-
+    cout << lenWords << endl;
     const int JQ = 1<<27 | 1<<26;
     sort(words.begin(), words.end(),
          [](const Word & a, const Word & b) -> bool
@@ -190,32 +195,24 @@ int main(){
         }
     }
     auto t1 = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-    int Y = (int)proxies.size()+1;
-    vector<uint32_t> skip(proxies.size() * Y);
+    cout << '\n' << t1-t0 << "ms prepare words\n";
+    vector<uint32_t> skip(proxies.size() * ((int)proxies.size()+1));
     vector<uint32_t> first(proxies.size());
     int CPUs = (int)thread::hardware_concurrency();
-    vector<int> CPUcnts(CPUs);
-    iota(CPUcnts.begin(), CPUcnts.end(), 0);
 
-    std::for_each(std::execution::unseq,
-              CPUcnts.begin(),
-                CPUcnts.end(),
-                  [&, proxies, first, skip, CPUs](int i)
-                  {
-                      go_func1(i,proxies,skip,first,CPUs);
-                  });
-
+    parallel_for (int(0), CPUs, [&](int x){
+        go_func1(x,proxies,skip,first,CPUs);
+    });
+    /*for (int x = 0; x < CPUs; ++x) {
+        go_func1(x,proxies,skip,first,CPUs);
+    }*/
     auto t2 = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-    
-    std::for_each(std::execution::unseq,
-                  CPUcnts.begin(),
-                  CPUcnts.end(),
-                  [&, proxies, first, skip, CPUs](int i)
-                  {
-                      go_func2(i,jqSplit,proxies,skip,first, indices,words,CPUs);
-                  });
+    cout << t2-t1 << "ms compute tables\n";
+
+    parallel_for (int(0), CPUs, [&](int x){
+        go_func2(x, jqSplit, proxies, skip, first, indices, words, CPUs);
+    });
 
     auto t3 = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-    cout << '\n' << t1-t0 << "ms prepare words\n" << t2-t1 << "ms compute tables\n"
-         << t3-t2 << "ms find solutions\n" << t3-t0 << "ms total\n";
+    cout << t3-t2 << "ms find solutions\n" << t3-t0 << "ms total\n";
 }
