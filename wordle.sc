@@ -76,8 +76,8 @@ object wordle {
  else{
   for{
    (clique_of_size_n_minus_1, available_candidates) <- cliques_of_size_n(n-1)
-   (word_to_add, words_remaining) <- for{ word :: tail <- available_candidates.tails } yield (word, word.foldLeft(tail)( (words,letter) => words filterNot(_.contains(letter))))
-  } yield (clique_of_size_n_minus_1 :+ word_to_add, words_remaining)
+   word_to_add :: words_remaining <- available_candidates.tails
+  } yield (clique_of_size_n_minus_1 :+ word_to_add, word_to_add.foldLeft(words_remaining)( (words,letter) => words filterNot(_.contains(letter))))
    
 /*
    word_to_add <- clique_of_size_n_minus_1.lastOption match {
